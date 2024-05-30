@@ -33,7 +33,7 @@ const version = (process.env.VERSION ? process.env.VERSION : require('../package
 
 const website = 'https://www.kalisio.com'
 const onlineHelp = 'https://kalisio.github.io/kano'
-const changelog = onlineHelp + '/quickstart/history.html'
+const changelog = onlineHelp + '/history.html'
 
 // Left pane
 const leftPane = {
@@ -299,32 +299,48 @@ const mapEngine = {
   // COLORS USED IN STYLES SHOULD BE PART OF THE QUASAR PALETTE NOT RANDOM RGB COLORS
   // THIS IS DUE TO KDK EDITING COMPONENTS ONLY SUPPORTING COLORS FROM PALETTE NOW
   // Default GeoJSON layer style for polygons/lines
-  featureStyle: {
-    'stroke-opacity': 1,
-    'stroke-color': 'red',
-    'stroke-width': 3,
-    'fill-opacity': 0.5,
-    'fill-color': 'green'
-  },
-  // Default GeoJSON layer style for polygons/lines edition
-  editFeatureStyle: {
-    'stroke-opacity': 1,
-    'stroke-color': 'red',
-    'stroke-width': 3,
-    'fill-opacity': 0.5,
-    'fill-color': 'green'
-  },
-  // Default GeoJSON layer style for points
-  pointStyle: {},
-  
-  // Default GeoJSON layer style for points edition
-  editPointStyle: {
-    'marker-type': 'circleMarker',
-    radius: 6,
-    'stroke-color': 'red',
-    'stroke-opacity': 1,
-    'fill-opacity': 0.5,
-    'fill-color': 'green'
+  style: {
+    point: { 
+      shape: 'circle', color: 'red', opacity: 0.5,  stroke: { color: 'red' }
+    },
+    line: { 
+      color: 'red', width: 3 
+    },
+    polygon: { 
+      color: 'red', opacity: 0.5, stroke: { color: 'red' }
+    },
+    location: {
+      point: { 
+        shape: 'marker-pin', color: 'primary', opacity: 1, size: [20, 30], stroke: { color: 'primary' }, icon: 
+          { classes: 'fas fa-circle', color: 'white', size: 12, translation: [ '-50%', '-90%'] }        
+      },
+      line: { color: 'primary', width: 3 },
+      polygon: { color: 'primary', opacity: 0.5, stroke: 
+        { color: 'primary' } 
+      }
+    },
+    edition: {
+      point: { 
+        shape: 'circle', color: 'yellow', stroke: { color: 'red', width: 3, dashArray: '0 5 0' }
+      },
+      line: { 
+        color: 'red', width: 3, dashArray: '0 5 0' 
+      },
+      polygon: { 
+        color: 'yellow', opacity: 0.5, stroke: { color: 'red', width: 3, dashArray: '0 5 0' } 
+      }
+    },
+    selection: {
+      point: { 
+        shape: 'circle', color: 'primary', opacity: 0.25, radius: 12, stroke: { color: 'primary', opacity: 0.25, width: 3 }
+      },
+      line: { 
+        color: 'primary', opacity: 0.25, width: 10 
+      },
+      polygon: { 
+        color: 'primary', opacity: 0.25, stroke: { color: 'primary', opacity: 0.25, width: 10 } 
+      }
+    }
   },
   // Default GeoJSON infobox will display all properties
   popup: { pick: [] },
@@ -381,12 +397,29 @@ const globeEngine = {
     flyToOnDrop: true,
     clampToGround: true
   },
-  // Default GeoJSON layer style for points/polygons/lines in simple style spec
-  featureStyle: {
-    'marker-symbol': 'marker',
-    'marker-color': '#57D824',
-    stroke: '#FF0000',
-    'fill-color': '#00FF00'
+  // Default GeoJSON layer style for points/polygons/lines
+  // SHOULD NOT COVER MORE THAN SIMPLE STYLE SPEC AND MAKI ICONS
+  style: {
+    point: { 
+      shape: 'marker', color: 'red' 
+    },
+    line: { 
+      color: 'red', width: 3 
+    },
+    polygon: { 
+      color: 'red', opacity: 0.5, stroke: { color: 'red' }
+    },
+    selection: {
+      point: { 
+        shape: 'marker', color: 'primary', opacity: 0.25
+      },
+      line: { 
+        color: 'primary', opacity: 0.25, width: 10 
+      },
+      polygon: { 
+        color: 'primary', opacity: 0.25, stroke: { color: 'primary', opacity: 0.25, width: 10 } 
+      }
+    }
   },
   entityStyle: {
     billboard: {
@@ -483,12 +516,43 @@ module.exports = {
       // Nothing specific, use defaults
     }
   },
+  about: {
+    actions: [
+      {
+        id: 'platform-info',
+        icon: 'las la-desktop',
+        label: 'KAbout.PLATFORM_INFO',
+        stack: true,
+        dialog: {
+          title: 'KAbout.PLATFORM_INFO',
+          component: 'app/KPlatform',
+          okAction: 'CLOSE',
+          widthPolicy: 'narrow'
+        }
+      },
+      { 
+        id: 'report-bug',
+        icon: 'las la-bug',
+        label: 'KAbout.BUG_REPORT',
+        stack: true,
+        component: 'action/KBugReportAction'
+      },
+      {
+        id: 'view-changelog',
+        icon: 'las la-history',
+        label: 'KAbout.VIEW_CHANGELOG',
+        stack: true,
+        url: changelog
+      }
+    ]
+  },
   screens: {
     actions: [{ 
       id: 'terms-policies', 
       label: 'screen.TERMS_AND_POLICIES', 
       dialog: {
-        component: 'app/KTerms'
+        component: 'document/KDocument',
+        url: 'kano-terms.md'
       }
     }],
     // frameBackgroundColor: '#FFDC9E',
@@ -608,8 +672,6 @@ module.exports = {
     },
     page: {
       content: [{
-        id: 'url-legend', component: 'layout/KPageSticky', position: 'top-left', offset: [18, 18], content: [{ component: 'KUrlLegend' }]
-      }, {
         id: 'level-slider', component: 'layout/KPageSticky', position: 'right', offset: [40, 0], content: [{ component: 'KLevelSlider' }]
       } /* Only for example purpose
       {
@@ -688,13 +750,11 @@ module.exports = {
     },
     bottomPane: {
       content: [
-        { component: 'KTimeline' }
+        { component: 'time/KTimeControl' }
       ]
     },
     page: {
-      content: [{
-        id: 'url-legend', component: 'layout/KPageSticky', position: 'top-left', offset: [18, 18], content: [{ component: 'KUrlLegend' }]
-      }]
+      content:[]
     },
     fab: {
       content: [
