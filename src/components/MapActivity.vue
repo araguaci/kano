@@ -13,6 +13,9 @@
 
 <script>
 import _ from 'lodash'
+import L from 'leaflet'
+import 'leaflet-rotate/dist/leaflet-rotate-src.js'
+import 'leaflet-arrowheads'
 import { computed } from 'vue'
 import { mixins as kCoreMixins } from '@kalisio/kdk/core.client'
 import { mixins as kMapMixins, composables as kMapComposables } from '@kalisio/kdk/map.client'
@@ -23,6 +26,14 @@ import config from 'config'
 
 const name = 'mapActivity'
 const baseActivityMixin = kCoreMixins.baseActivity(name)
+
+const buildVectorHats = L.Polyline.prototype.buildVectorHats
+L.Polyline.prototype.buildVectorHats = function (options) {
+  const rotate = this._map._rotate
+  this._map._rotate = false
+  buildVectorHats.bind(this)(options)
+  this._map._rotate = rotate
+}
 
 export default {
   mixins: [
@@ -116,6 +127,11 @@ export default {
       // We'd like to share view settings between 2D/3D
       return this.geAppName().toLowerCase() + '-view'
     },
+    async updateLayer (name, geoJson, options = {}) {
+      // We let any embedding iframe process features if required
+      const response = await utils.sendEmbedEvent('layer-update', { name, geoJson, options })
+      kMapMixins.map.geojsonLayers.methods.updateLayer.call(this, name, (response && response.data) || geoJson, options)
+    },
     getHighlightMarker (feature, options) {
       if ((options.name === kMapComposables.HighlightsLayerName) && this.isWeatherProbe(feature)) {
         return {
@@ -149,7 +165,14 @@ export default {
       if (!_.has(this, 'layerHandlers')) { this.layerHandlers = {} }
 
       for (const layerEvent of layerEvents) {
-        const handler = (layer) => utils.sendEmbedEvent(layerEvent, { layer })
+        const handler = (layer) => {
+          // Take care to not serialize internal Leaflet structures that might contain circular references
+          utils.sendEmbedEvent(layerEvent, {
+            layer: Object.assign(_.omit(layer, ['leaflet']), {
+              leaflet: _.mapValues(layer.leaflet, value => (value instanceof L.Class) ? null : value)
+            })
+          })
+        }
         this.layerHandlers[layerEvent] = handler
         this.$engineEvents.on(layerEvent, handler)
       }
@@ -216,7 +239,7 @@ export default {
     // Setup event connections
     const allLeafletEvents = ['click', 'dblclick', 'mouseover']
     this.forwardLeafletEvents(allLeafletEvents)
-    const allLayerEvents = ['layer-added', 'layer-shown', 'layer-hidden', 'layer-removed']
+    const allLayerEvents = ['layer-added', 'layer-shown', 'layer-hidden', 'layer-removed', 'layer-updated']
     this.forwardLayerEvents(allLayerEvents)
     this.$engineEvents.on('edit-start', this.onEditStartEvent)
     this.$engineEvents.on('edit-stop', this.onEditStopEvent)
